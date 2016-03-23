@@ -48,9 +48,13 @@ function target() {
 
         for (var ball_id in client.balls) {
             var ball = client.balls[ball_id];
-            if(!ball.visible || ball.mine || 
-               (Math.abs(ball.x - my_ball.x) < 0.1 && Math.abs(ball.y - my_ball.y) < 0.1))
+            if(!ball.visible || ball.mine || ball.eaten)
                 continue;
+
+           if (Math.abs(ball.x - my_ball.x) < 0.1 && Math.abs(ball.y - my_ball.y) < 0.1) {
+               ball.eaten = true;
+               continue;
+           }
 
             var dist = getDistance(ball, my_ball) - ball.size;
             if (ball.virus) {
@@ -62,7 +66,7 @@ function target() {
                 var margin = 200;
                 if (client.my_balls.length > 2) {
                     margin = 800;
-                } else if (ball.size / my_ball.size <= 3.5 &&
+                } else if (ball.size / my_ball.size <= 4 &&
                              ball.size / my_ball.size > 2) {
                     margin = 700;
                 }
@@ -72,15 +76,20 @@ function target() {
                 }
             } else if(ball.size / my_ball.size <= 0.8) {
                 if (split_timer == 0 && ball.size > 40 &&
-                    ball.size / my_ball.size < 0.5 && dist < 400) {
+                    ball.size / my_ball.size < 0.45 &&
+                    ball.size / my_ball.size > 0.2 &&
+                    dist < 400 && dist > 200) {
                     client.moveTo(ball.x, ball.y);
                     client.split();
-                    split_timer = 10;
+                    split_timer = 30;
                     return;
                 }
-                if(!small_ball || (dist * dist) / ball.size < small_dist) {
-                    small_ball = ball;
-                    small_dist = (dist * dist) / ball.size;
+                if (ball.x > 1000 && ball.y > 1000 &&
+                    ball.x < 3000 && ball.y < 3000) {
+                    if(!small_ball || (dist * dist) / ball.size < small_dist) {
+                        small_ball = ball;
+                        small_dist = (dist * dist) / ball.size;
+                    }
                 }
             }
         }
@@ -90,12 +99,13 @@ function target() {
         var x = large_ball.x - my_ball.x;
         var y = large_ball.y - my_ball.y;
         client.moveTo(my_ball.x - x + 5, my_ball.y -  y + 5);
-        console.log("\rRunning Away From '" + large_ball.name + "' dist " + getDistance(large_ball, my_ball));
+        client.log("Running Away From '" + large_ball.name + "' x:" + large_ball.x + " y:" + large_ball.y);
     } else if (small_ball) {
         client.moveTo(small_ball.x, small_ball.y);
-        console.log("Hunting '" + small_ball.name + "' dist: " + getDistance(small_ball, my_ball));
+        client.log("Hunting '" + small_ball.name + "' x:" + small_ball.x + " y:" + small_ball.y);
     } else {
-        console.log("Nothing");
+        client.log("Avoiding Walls");
+        client.moveTo(2000, 2000);
     }
 }
 

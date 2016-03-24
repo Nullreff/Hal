@@ -10,13 +10,11 @@ var split_timer = 0;
 
 
 client.on('lostMyBalls', function() {
-    client.log('=== RESPAWNING ===');
-    client.spawn(client_name);
+    setTimeout(spawn, 2000);
 });
 
 client.on('connected', function() {
-    client.log('=== SPAWNING ===');
-    client.spawn(client_name);
+    spawn();
     tick = setInterval(target, 100);
 });
 
@@ -29,9 +27,15 @@ client.on('reset', function() {
     clearInterval(tick);
 });
 
+function spawn() {
+    client.log('=== SPAWNING ===');
+    client.spawn(client_name);
+}
+
 function target() {
     var small_ball = null;
     var large_ball = null;
+    var split_ball = null;
     var small_dist = 0;
     var small_size = 0;
     var large_dist = Infinity;
@@ -76,19 +80,24 @@ function target() {
                 }
             } else if(ball.size / my_ball.size <= 0.8) {
                 if (split_timer == 0 && ball.size > 40 &&
-                    ball.size / my_ball.size < 0.45 &&
+                    ball.size / my_ball.size < 0.48 &&
                     ball.size / my_ball.size > 0.2 &&
                     dist < 400 && dist > 200) {
-                    client.moveTo(ball.x, ball.y);
-                    client.split();
-                    split_timer = 30;
+                    split_ball = ball;
                     return;
                 }
-                if (ball.x > 1000 && ball.y > 1000 &&
-                    ball.x < 3000 && ball.y < 3000) {
+                if (ball.x > -3000 && ball.y > -2000 &&
+                    ball.x < 3000 && ball.y < 2000) {
                     if(!small_ball || (dist * dist) / ball.size < small_dist) {
-                        small_ball = ball;
-                        small_dist = (dist * dist) / ball.size;
+                        if (!ball.appeal) {
+                            ball.appeal = 2;
+                        } else {
+                            ball.appeal--;
+                        }
+                        if (ball.appeal > 0 || ball.size > 20) {
+                            small_ball = ball;
+                            small_dist = (dist * dist) / ball.size;
+                        }
                     }
                 }
             }
@@ -100,12 +109,16 @@ function target() {
         var y = large_ball.y - my_ball.y;
         client.moveTo(my_ball.x - x + 5, my_ball.y -  y + 5);
         client.log("Running Away From '" + large_ball.name + "' x:" + large_ball.x + " y:" + large_ball.y);
+    } else if (split_ball) {
+        client.moveTo(split_ball.x, split_ball.y);
+        client.split();
+        split_timer = 30;
     } else if (small_ball) {
         client.moveTo(small_ball.x, small_ball.y);
         client.log("Hunting '" + small_ball.name + "' x:" + small_ball.x + " y:" + small_ball.y);
     } else {
         client.log("Avoiding Walls");
-        client.moveTo(2000, 2000);
+        client.moveTo(0, 0);
     }
 }
 

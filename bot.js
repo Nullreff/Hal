@@ -33,8 +33,8 @@ function spawn() {
 }
 
 function target() {
+    var large_balls = [];
     var small_ball = null;
-    var large_ball = null;
     var split_ball = null;
     var small_dist = 0;
     var small_size = 0;
@@ -55,46 +55,43 @@ function target() {
             if(!ball.visible || ball.mine || ball.eaten)
                 continue;
 
-           if (Math.abs(ball.x - my_ball.x) < 0.1 && Math.abs(ball.y - my_ball.y) < 0.1) {
-               ball.eaten = true;
-               continue;
-           }
+            if (Math.abs(ball.x - my_ball.x) < 1 && Math.abs(ball.y - my_ball.y) < 1) {
+                ball.eaten = true;
+                continue;
+            }
 
             var dist = getDistance(ball, my_ball) - ball.size;
             if (ball.virus) {
                 if (my_ball.size > ball.size && dist < (my_ball.size - 15)) {
-                    large_ball = ball;
-                    large_dist = 0;
+                    large_balls.push(ball);
                 }
             } else if(ball.size / my_ball.size > 1.1) {
                 var margin = 200;
                 if (client.my_balls.length > 2) {
-                    margin = 800;
-                } else if (ball.size / my_ball.size <= 4 &&
-                             ball.size / my_ball.size > 2) {
+                    margin = 2000;
+                } else if (ball.size / my_ball.size <= 3.5 &&
+                             ball.size / my_ball.size > 1.5) {
                     margin = 700;
                 }
                 if (dist < margin && dist < large_dist) {
-                    large_ball = ball;
-                    large_dist = dist;
+                    large_balls.push(ball);
                 }
             } else if(ball.size / my_ball.size <= 0.8) {
-                if (split_timer == 0 && ball.size > 40 &&
-                    ball.size / my_ball.size < 0.48 &&
-                    ball.size / my_ball.size > 0.2 &&
-                    dist < 400 && dist > 200) {
+                if (client.my_balls.length < 4 && split_timer == 0 &&
+                    ball.size > 40 &&
+                    ball.size / my_ball.size < 0.5 &&
+                    ball.size / my_ball.size > 0.1 &&
+                    dist < 500 && dist > 200) {
                     split_ball = ball;
-                    return;
                 }
-                if (ball.x > -3000 && ball.y > -2000 &&
-                    ball.x < 3000 && ball.y < 2000) {
+                    if (getDistance(ball, my_ball) < (my_ball.size * 10) + 1000) {
                     if(!small_ball || (dist * dist) / ball.size < small_dist) {
                         if (!ball.appeal) {
-                            ball.appeal = 2;
+                            ball.appeal = ball.size;
                         } else {
                             ball.appeal--;
                         }
-                        if (ball.appeal > 0 || ball.size > 20) {
+                        if (ball.appeal > 0) {
                             small_ball = ball;
                             small_dist = (dist * dist) / ball.size;
                         }
@@ -104,26 +101,36 @@ function target() {
         }
     }
 
-    if(large_ball) {
-        var x = large_ball.x - my_ball.x;
-        var y = large_ball.y - my_ball.y;
-        client.moveTo(my_ball.x - x + 5, my_ball.y -  y + 5);
-        client.log("Running Away From '" + large_ball.name + "' x:" + large_ball.x + " y:" + large_ball.y);
+    if(large_balls.length > 0) {
+        var target = {x: 0, y: 0};
+        for (var i in large_balls) {
+            var ball = large_balls[i];
+            target.x += 1/(my_ball.x - ball.x);
+            target.y += 1/(my_ball.y - ball.y);
+        }
+        target = normalize(target);
+        client.moveTo(my_ball.x + (target.x * 1000), my_ball.y + (target.y * 1000));
+        client.log("Avoiding " + large_balls.length + " balls");
     } else if (split_ball) {
         client.moveTo(split_ball.x, split_ball.y);
         client.split();
-        split_timer = 30;
+        split_timer = 10;
+        client.log("Splitting '" + split_ball.name + "'");
     } else if (small_ball) {
         client.moveTo(small_ball.x, small_ball.y);
-        client.log("Hunting '" + small_ball.name + "' x:" + small_ball.x + " y:" + small_ball.y);
+        client.log("Hunting  '" + small_ball.name + "' (" + small_ball.appeal + ")");
     } else {
-        client.log("Avoiding Walls");
-        client.moveTo(0, 0);
+        client.log("Nothing");
     }
 }
 
 function getDistance(a, b) {
     return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+}
+
+function normalize(a) {
+    var dist = getDistance({x: 0, y: 0}, a);
+    return {x: a.x / dist, y: a.y / dist};
 }
 
 console.log('Requesting server in region ' + region);

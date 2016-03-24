@@ -38,7 +38,6 @@ function target() {
     var split_ball = null;
     var small_dist = 0;
     var small_size = 0;
-    var large_dist = Infinity;
 
     if (split_timer > 0) {
         split_timer--;
@@ -73,7 +72,7 @@ function target() {
                              ball.size / my_ball.size > 1.5) {
                     margin = 700;
                 }
-                if (dist < margin && dist < large_dist) {
+                if (dist < margin) {
                     large_balls.push(ball);
                 }
             } else if(ball.size / my_ball.size <= 0.8) {
@@ -84,7 +83,7 @@ function target() {
                     dist < 500 && dist > 200) {
                     split_ball = ball;
                 }
-                    if (getDistance(ball, my_ball) < (my_ball.size * 10) + 1000) {
+                if (getDistance(ball, my_ball) < (my_ball.size * 10) + 1000) {
                     if(!small_ball || (dist * dist) / ball.size < small_dist) {
                         if (!ball.appeal) {
                             ball.appeal = ball.size;
@@ -105,8 +104,12 @@ function target() {
         var target = {x: 0, y: 0};
         for (var i in large_balls) {
             var ball = large_balls[i];
-            target.x += 1/(my_ball.x - ball.x);
-            target.y += 1/(my_ball.y - ball.y);
+            var offset = normalize({
+                x: (my_ball.x - ball.x),
+                y: (my_ball.y - ball.y)
+            });
+            target.x += offset.x;
+            target.y += offset.y;
         }
         target = normalize(target);
         client.moveTo(my_ball.x + (target.x * 1000), my_ball.y + (target.y * 1000));

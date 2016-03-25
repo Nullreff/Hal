@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 var AgarioClient = require('agario-client');
 
-var client_name = 'Hal';
+var client_name = 'HAL 9000';
 var region = 'US-Atlanta';
 var server = '127.0.0.1:9158';
 var client = new AgarioClient(client_name);
